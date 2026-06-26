@@ -1,0 +1,3 @@
+anthropic>=0.40
+feedparser>=6.0
+requests>=2.31
