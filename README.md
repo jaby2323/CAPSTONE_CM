@@ -32,10 +32,22 @@ Set the two API keys as environment variables (the code reads them automatically
 If `GEMINI_API_KEY` is missing the retrieval layer falls back to a local
 hash-based embedding so the demo still runs.
 
-## Run
+## Run (notebook)
 
 Open **`Forecaster.ipynb`** and run the cells top to bottom. It seeds a little
 demo history, runs one full forecast cycle, and prints the ranked briefings.
+
+## Run (web app)
+
+`app.py` is a FastAPI + React front-end over the exact same pipeline:
+
+```powershell
+python app.py
+```
+
+Then open <http://127.0.0.1:8000> and click **Process**. A sidebar lists the
+four agents and ticks a green check next to each as it finishes (streamed live
+via Server-Sent Events); the ranked forecasts render in the main panel.
 
 > This is a proof of concept, not production code — it favours readability and
 > "it runs correctly" over robustness.

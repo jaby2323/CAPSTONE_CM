@@ -286,24 +286,32 @@ class ForecastController:
         self.critic = CriticAgent()
         self.forecast = ForecastAgent(self.store)
 
-    def run_cycle(self, verbose=True):
+    def run_cycle(self, verbose=True, on_event=None):
         log = print if verbose else (lambda *a, **k: None)
+        # on_event(agent_key, state) lets a UI show live progress per agent.
+        emit = on_event or (lambda *a, **k: None)
 
         # --- Collector ---
         log("[1/4] Collector: fetching live data...")
+        emit("collector", "running")
         collected = self.collector.run()
         if not collected["ok"]:
             log(f"  data not OK: {collected['reason']}")
+            emit("collector", "error")
             return {"ok": False, "detail": collected}
         topics = collected["topics"]
         log(f"  {collected['item_count']} items -> {len(topics)} candidate topics")
+        emit("collector", "done")
 
         # --- Retrieval (RAG) ---
         log("[2/4] Retrieval: querying long-term memory...")
+        emit("retrieval", "running")
         topics = self.retrieval.run(topics)
+        emit("retrieval", "done")
 
         # --- Critic (Tree-of-Thought) with one feedback hop ---
         log("[3/4] Critic: Tree-of-Thought scoring...")
+        emit("critic", "running")
         evaluations = []
         for t in topics:
             ev = self.critic.evaluate(t)
@@ -315,10 +323,13 @@ class ForecastController:
                 self.retrieval.run([t], broaden=True)
                 ev = self.critic.evaluate(t)
             evaluations.append(ev)
+        emit("critic", "done")
 
         # --- Forecast + write-back ---
         log("[4/4] Forecast: generating briefings...")
+        emit("forecast", "running")
         results = [self.forecast.run(t, ev)
                    for t, ev in zip(topics, evaluations)]
         results.sort(key=lambda r: r["confidence"], reverse=True)
+        emit("forecast", "done")
         return {"ok": True, "results": results}
